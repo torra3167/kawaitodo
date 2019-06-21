@@ -8,64 +8,157 @@ import {
   TextInput,
   Dimensions,
   Platform,
-  ScrollView
+  ScrollView,
+  AsyncStorage
 } from "react-native";
+
 import ToDo from "./ToDo";
 import { AppLoading } from "expo";
 import uuidv1 from "uuid/v1";
 
 const { height, width } = Dimensions.get("window");
 
-export default class App extends Component {
-  
+export default class App extends React.Component {
   state = {
     newToDo: "",
-    loadedToDos: true,
-    toDos:""
-    
-  };
+    loadedToDos: false,
+    toDos: {}
+  }
   componentDidMount() {
     this._loadToDos();
-  };
+  }
 
   render() {
     const { newToDo, loadedToDos, toDos } = this.state;
-    console.log(toDos + " toDos");
-    if (!loadedToDos) {
-      return (<AppLoading />);
-    }
+    console.log(toDos);
 
+    if (!loadedToDos) {
+      return <AppLoading></AppLoading>
+    }
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
-        <Text style={styles.title}>Kawai To Do</Text>
+        <StatusBar barStyle="dark-content"></StatusBar>
+        <Text style={styles.title}>
+          KAWAI TO DO
+        </Text>
         <View style={styles.card}>
           <TextInput
             style={styles.input}
             placeholder={"New To Do"}
             value={newToDo}
             onChangeText={this._controlNewToDo}
-            placeholderTextColor={"#999"}
+            placeholderTextColor={'#999'}
             returnKeyType={"done"}
             autoCorrect={false}
-            onSubmitEditing={this._addToDo}
-          />
+            onSubmitEditing={this._addToDo}></TextInput>
 
           <ScrollView contentContainerStyle={styles.toDos}>
-            {/* <ToDo text={" Hello To Do wow"} /> */}
-            <ToDo>aa</ToDo>
-            {/* {Object.values(toDos).map(toDo => <ToDo key={toDo.id} {...toDo}></ToDo>)} */}
+            {/* <ToDo text={"Hello I am from App.js"}></ToDo> */}
+            {Object.values(toDos).reverse().map((toDo) => <ToDo 
+            key={toDo.id} 
+            deleteToDo={this._deleteToDo}
+            uncompleteToDo={this._uncompleteToDo}
+            completeToDo={this._completeToDo}
+            updateToDo={this._updateToDo}
+            {...toDo} 
+            >
+
+            </ToDo>)}
           </ScrollView>
+
         </View>
       </View>
     );
   }
+  _uncompleteToDo = (id) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        toDos: {
+          ...prevState.toDos,
+          [id] : {
+            ...prevState.toDos[id],
+            isCompleted: false
+          }
+        }
+      }
+      this._saveToDos(newState.toDos);
+      return {...newState};
+    })
+  }
+  _saveToDos = (newToDos) => {
+    // console.log("JSON " + JSON.stringify(newToDos));
+    const saveToDos = AsyncStorage.setItem('toDos', JSON.stringify(newToDos));
+
+  }
+  _updateToDo = (id, text) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        toDos: {
+          ...prevState.toDos,
+          [id] : {
+            ...prevState.toDos[id],
+            text: text
+          }
+        }
+      }
+      this._saveToDos(newState.toDos);
+      return {...newState};
+    })
+  }
+  _completeToDo = (id) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        toDos: {
+          ...prevState.toDos,
+          [id] : {
+            ...prevState.toDos[id],
+            isCompleted: true
+          }
+        }
+      }
+      this._saveToDos(newState.toDos);
+      return {...newState};
+    })
+  }
+  _deleteToDo = (id) => {
+    this.setState(prevState => {
+      const toDos = prevState.toDos;
+      delete toDos[id];
+      const newState = {
+        ...prevState,
+        ...toDos
+      }
+      this._saveToDos(newState.toDos);
+      return { ...newState };
+    })
+  }
+
+  _controlNewToDo = text => {
+    this.setState({
+      newToDo: text
+    })
+  };
+
+  _loadToDos = async () => {
+    try {
+      const toDos = await AsyncStorage.getItem('toDos');
+      const parsedToDos = JSON.parse(toDos);
+      console.log(toDos);
+    this.setState({
+      loadedToDos: true,
+      toDos: parsedToDos
+    })
+    } catch(error) {
+      console.log(error);
+    }
+  }
   _addToDo = () => {
     const { newToDo } = this.state;
     if (newToDo !== "") {
-      // this.setState({
-      //   newToDo: ""
-      // });
+
       this.setState(prevState => {
         const ID = uuidv1();
         const newToDoObject = {
@@ -76,7 +169,6 @@ export default class App extends Component {
             createdAt: Date.now()
           }
         };
-
         const newState = {
           ...prevState,
           newToDo: "",
@@ -84,51 +176,21 @@ export default class App extends Component {
             ...prevState.toDos,
             ...newToDoObject
           }
-        };
+        }
+        this._saveToDos(newState.toDos);
         return { ...newState };
       });
     }
   };
 
-  _loadToDos = () => {
-    this.setState({
-      loadedToDos: true
-    });
-  };
 
-  _controlNewToDo = text => {
-    this.setState({
-      newToDo: text
-    });
-  };
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F23657",
-    alignItems: "center"
-  },
-
-  title: {
-    color: "white",
-    fontSize: 30,
-    marginTop: 50,
-    fontWeight: "500",
-    marginBottom: 30
-  },
-
-  card: {
-    backgroundColor: "white",
-    flex: 1,
-    width: width - 25,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    ...Platform.select({
-      ios: {},
-      android: {
-        elevation: 5
-      }
-    })
+    backgroundColor: '#F23657',
+    alignItems: 'center'
   },
   input: {
     padding: 20,
@@ -136,9 +198,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     fontSize: 25
   },
+  card: {
+    backgroundColor: 'white',
+    flex: 1,
+    width: width - 25,
+    marginBottom: 30,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    ...Platform.select({
+      ios: {
 
+      },
+      android: {
+        elevation: 3
+
+      }
+    })
+  },
+  title: {
+    color: 'white',
+    fontSize: 30,
+    marginTop: 50,
+    fontWeight: "600"
+  },
   toDos: {
-    alignItems: "center"
+    alignItems: 'center'
   }
-});
-
+})
