@@ -4,20 +4,38 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions
+  Dimensions,
+  TextInput
 } from "react-native";
-import { Directions } from "react-native-gesture-handler";
+import PropTypes from 'prop-types';
+
 
 const { width, height } = Dimensions.get("window");
-export default class ToDo extends Component {
+// const {text} = this.props;
+
+
+class ToDo extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isCompleted: false,
+      toDoValue: props.text
+    };
+  }
+
+  static propTypes = {
+    text: PropTypes.string.isRequired,
+    isCompleted: PropTypes.bool.isRequired
+  }
   state = {
     isEditing: false,
-    isCompleted: false
-  };
+    toDoValue: ""
+    };
   render() {
     const { isCompleted, isEditing } = this.state;
     return (
       <View style={styles.container}>
+        <View style={styles.column}>
         <TouchableOpacity onPress={this._toggleComplete}>
           <View
             style={[
@@ -26,15 +44,29 @@ export default class ToDo extends Component {
             ]}
           />
         </TouchableOpacity>
+        {isEditing ? (
+          <TextInput 
+        style={[
+           styles.text,
+           styles.input,
+           isCompleted ? styles.completedText : styles.uncompletedText]}
+        value={toDoValue}
+        multiline={true}
+        onChangeText={this._controlInput}
+        returnKeyType={"done"}
+        onBlur={this._finishEditing}>
+
+        </TextInput> ) : (
         <Text
           style={[
             styles.text,
             isCompleted ? styles.completedText : styles.uncompletedText
-          ]}
-        >
-          Hello To Do wow{" "}
+          ]}>
+          {text}
         </Text>
-        <View style={styles.column}>
+        )}
+        </View>
+        
           {isEditing ? (
             <View style={styles.actions}>
               <TouchableOpacity onPressOut={this._finishEditing}>
@@ -58,34 +90,52 @@ export default class ToDo extends Component {
             </View>
           )}
         </View>
-      </View>
     );
+ 
   }
-
   _toggleComplete = () => {
     this.setState(prevState => {
       return {
         isCompleted: !prevState.isCompleted
-      };
+      }
     });
   };
   _startEditing = () => {
-    this.setState(prevState => {
-      return {
-        isEditing: !prevState.isEditing
-
-      };
+    // const {text} = this.props;
+    this.setState({
+        isEditing: true,
+        toDoValue: text
     });
   };
 
   _finishEditing = () => {
       this.setState({
           isEditing: false
-      })
-  }
-}
+      });
+  };
 
+  _controlInput = text => {
+    this.setState({
+      toDoValue: text
+    });
+  }; 
+  _deleteToDo = (id) => {
+    this.setState(prevState => {
+      const toDos = prevState.toDos;
+      delete toDos[id]
+    });
+  }
+
+
+}
 const styles = StyleSheet.create({
+  input: {
+    marginVertical: 15,
+    width: width / 2,
+    marginHorizontal: 15,
+    marginBottom: 5
+  },
+
   container: {
     width: width - 50,
     borderBottomColor: "#bbb",
@@ -119,6 +169,7 @@ const styles = StyleSheet.create({
   uncompletedText: {
     color: "#353839"
   },
+  
   circle: {
     width: 30,
     height: 30,
@@ -130,7 +181,9 @@ const styles = StyleSheet.create({
   column: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    // justifyContent: "space-between",
     width: width / 2
   }
 });
+
+export default ToDo;
